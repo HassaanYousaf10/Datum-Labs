@@ -1,0 +1,176 @@
+1st Question
+def func_none(lst):
+    for i in range(len(lst)):
+        if lst[i] is None:
+            if i == 0:
+                lst[i] = None
+            else:
+                lst[i] = lst[i - 1]
+    return lst
+-----------------------------------------------------------------
+2nd Question
+-----------------------------------------------------------------
+# def find_mismatched_words(str1, str2):
+#     words1 = str1.split()
+#     words2 = str2.split()
+    
+#     mismatched_words = []
+#     for word1, word2 in zip(words1, words2):
+#         if word1 != word2 and word1.lower() == word2.lower():
+#             mismatched_words.append(word1)
+#             mismatched_words.append(word2)
+    
+#     return mismatched_words
+
+# input1 = "Datumlabs is an awesome place"
+# input2 = "Datumlabs.io Is an AWESOME place"
+# print(find_mismatched_words(input1, input2))
+
+
+def find_mismatched_words(str1, str2):
+    words1 = str1.split()
+    words2 = str2.split()
+    
+    mismatched_words = []
+    for word1 in words1:
+        for word2 in words2:
+            if word1 != word2 and word1.lower() == word2.lower():
+                mismatched_words.append(word1)
+                mismatched_words.append(word2)
+    
+    return mismatched_words
+
+input1 = "Datumlabs an is place awesome"
+input2 = "Datumlabs.io Is an AWESOME place"
+print(find_mismatched_words(input1, input2))
+
+-----------------------------------------------------------------
+3rd Question
+-----------------------------------------------------------------
+def character_frequency(s, char):
+    return s.count(char)
+
+string = 'mississippi'
+char = 'p'
+print(character_frequency(string, char))
+
+-----------------------------------------------------------------
+4th Question
+-----------------------------------------------------------------
+def nth_largest_key(dictionary, n):
+    if n <= 0:
+        return None
+
+    largest_key = None
+    largest_value = float('-inf')
+
+    for key, value in dictionary.items():
+        if value > largest_value:
+            largest_value = value
+            largest_key = key
+    
+
+    for _ in range(n - 1):
+        second_largest_value = float('-inf')
+        for key, value in dictionary.items():
+            
+            if value < largest_value:
+                print(value)
+                second_largest_value = value
+                largest_key = key
+        largest_value = second_largest_value
+        
+
+    return largest_key
+
+dictionary = {'a': 1, 'b': 2, 'c': 100, 'd': 30}
+n = 2
+print(nth_largest_key(dictionary, n))]
+
+-----------------------------------------------------------------
+5th Question
+-----------------------------------------------------------------
+
+
+WITH CustomersWhoBoughtBoth AS (
+    SELECT cp1.customer_id
+    FROM CustomerPurchases cp1
+    JOIN CustomerPurchases cp2 ON cp1.customer_id = cp2.customer_id
+    WHERE cp1.product_id = 'A' AND cp1.payment_status = 'Paid'
+      AND cp2.product_id = 'B' AND cp2.payment_status = 'Paid'
+)
+SELECT 
+    CAST(COUNT(distinct cwb.customer_id) AS FLOAT) / NULLIF(COUNT(distinct cp.customer_id), 0) * 100 AS Percentage
+FROM
+    CustomersWhoBoughtBoth cwb
+RIGHT JOIN
+    CustomerPurchases cp ON cwb.customer_id = cp.customer_id;
+
+-----------------------------------------------------------------
+ 6th Question
+-----------------------------------------------------------------
+
+
+WITH PromotionSales AS (
+Select p.promotion_id, sale_date, start_date, end_date,
+	Case 
+		when discount_rate is not null then (s.amount - s.amount*p.discount_rate*0.01)
+		Else amount
+	End total_sale_amount
+From Sales s
+Left Join Promotions p
+on s.promotion_id = p.promotion_id
+)
+
+SELECT
+    promotion_id,
+    (SELECT SUM(total_sale_amount) FROM PromotionSales WHERE promotion_id = p.promotion_id AND sale_date = p.start_date) / 
+        (Select SUM(
+					Case 
+						when discount_rate is not null then (s.amount - s.amount*pr.discount_rate*0.01)
+						Else amount
+					End) as Total_Sales
+				From Sales s
+				Left Join Promotions pr
+				on s.promotion_id = pr.promotion_id) * 100 AS first_day_sale_percentage, --If we want to get the percentage of sales for the products sold on sale only
+				--just change pr to p in the join condition
+
+    (SELECT SUM(total_sale_amount) FROM PromotionSales WHERE promotion_id = p.promotion_id AND sale_date = p.end_date) / 
+        (Select SUM(
+					Case 
+						when discount_rate is not null then (s.amount - s.amount*pr.discount_rate*0.01)
+						Else amount
+					End) as Total_Sales
+				From Sales s
+				Left Join Promotions pr
+				on s.promotion_id = pr.promotion_id) * 100 AS last_day_sale_percentage
+
+FROM
+    Promotions p;
+
+-----------------------------------------------------------------
+ 7th Question
+-----------------------------------------------------------------
+
+
+WITH ComplementaryProducts AS (
+    SELECT 
+        product_id,
+        COUNT(DISTINCT customer_id) AS num_customers
+    FROM 
+        [dbo].[CustomerPurchases]
+    WHERE 
+        product_id != 'A' 
+        AND customer_id IN (SELECT DISTINCT customer_id FROM [dbo].[CustomerPurchases] WHERE product_id = 'A' AND payment_status = 'Paid')
+        AND payment_status = 'Paid'
+    GROUP BY 
+        product_id
+)
+SELECT TOP 5
+    product_id,
+    num_customers
+FROM 
+    ComplementaryProducts
+ORDER BY 
+    num_customers DESC;
+
