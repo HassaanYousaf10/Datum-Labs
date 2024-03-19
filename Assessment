@@ -174,3 +174,209 @@ FROM
 ORDER BY 
     num_customers DESC;
 
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+Spark Solution
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+pip install pyspark
+
+
+# Function to convert date strings to datetime.date objects
+def str_to_date(date_str):
+    return datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+
+# Initialize Spark Session
+spark = SparkSession.builder.appName("CreateTables").getOrCreate()
+
+# Define schemas for each table
+userActivitySchema = StructType([
+    StructField("activity_id", StringType(), True),
+    StructField("user_id", StringType(), True),
+    StructField("activity_date", DateType(), True),
+])
+
+usersSchema = StructType([
+    StructField("user_id", StringType(), True),
+    StructField("user_name", StringType(), True),
+    StructField("join_date", DateType(), True),
+])
+
+salesSchema = StructType([
+    StructField("sale_id", StringType(), True),
+    StructField("product_id", StringType(), True),
+    StructField("sale_date", DateType(), True),
+    StructField("amount", FloatType(), True),
+    StructField("category_id", StringType(), True),
+])
+
+productsSchema = StructType([
+    StructField("product_id", StringType(), True),
+    StructField("product_name", StringType(), True),
+    StructField("category_id", StringType(), True),
+])
+
+categoriesSchema = StructType([
+    StructField("category_id", StringType(), True),
+    StructField("category_name", StringType(), True),
+])
+
+# Convert the date strings to datetime.date objects in the sample data
+userActivityData = [
+    ("1", "101", str_to_date("2024-01-05")),
+    ("2", "102", str_to_date("2024-01-06")),
+    ("3", "103", str_to_date("2024-01-07")),
+    ("4", "101", str_to_date("2024-01-15")),
+    ("5", "104", str_to_date("2024-01-20")),
+    ("6", "102", str_to_date("2024-01-25")),
+    ("7", "105", str_to_date("2024-01-30")),
+]
+
+usersData = [
+    ("101", "Alice", str_to_date("2023-05-10")),
+    ("102", "Bob", str_to_date("2023-06-15")),
+    ("103", "Charlie", str_to_date("2023-07-20")),
+    ("104", "Dana", str_to_date("2023-08-25")),
+    ("105", "Emily", str_to_date("2023-09-30")),
+]
+
+salesData = [
+    ("1", "P001", str_to_date("2024-01-01"), 100.00, "C1"),
+    ("2", "P002", str_to_date("2024-01-05"), 150.00, "C2"),
+    ("3", "P001", str_to_date("2024-01-10"), 100.00, "C1"),
+    ("4", "P003", str_to_date("2024-01-15"), 200.00, "C3"),
+    ("5", "P002", str_to_date("2024-01-20"), 150.00, "C2"),
+]
+
+productsData = [
+    ("P001", "Product A", "C1"),
+    ("P002", "Product B", "C2"),
+    ("P003", "Product C", "C3"),
+]
+
+categoriesData = [
+    ("C1", "Electronics"),
+    ("C2", "Clothing"),
+    ("C3", "Home Appliances"),
+]
+
+# Create DataFrames
+dfUserActivity = spark.createDataFrame(data=userActivityData, schema=userActivitySchema)
+dfUsers = spark.createDataFrame(data=usersData, schema=usersSchema)
+dfSales = spark.createDataFrame(data=salesData, schema=salesSchema)
+dfProducts = spark.createDataFrame(data=productsData, schema=productsSchema)
+dfCategories = spark.createDataFrame(data=categoriesData, schema=categoriesSchema)
+
+# Show the DataFrames to verify
+dfUserActivity.show()
+dfUsers.show()
+dfSales.show()
+dfProducts.show()
+dfCategories.show()
+
+
+#OUTPUT
+---------------------------------------------------
++-----------+-------+-------------+
+|activity_id|user_id|activity_date|
++-----------+-------+-------------+
+|          1|    101|   2024-01-05|
+|          2|    102|   2024-01-06|
+|          3|    103|   2024-01-07|
+|          4|    101|   2024-01-15|
+|          5|    104|   2024-01-20|
+|          6|    102|   2024-01-25|
+|          7|    105|   2024-01-30|
++-----------+-------+-------------+
+
++-------+---------+----------+
+|user_id|user_name| join_date|
++-------+---------+----------+
+|    101|    Alice|2023-05-10|
+|    102|      Bob|2023-06-15|
+|    103|  Charlie|2023-07-20|
+|    104|     Dana|2023-08-25|
+|    105|    Emily|2023-09-30|
++-------+---------+----------+
+
++-------+----------+----------+------+-----------+
+|sale_id|product_id| sale_date|amount|category_id|
++-------+----------+----------+------+-----------+
+|      1|      P001|2024-01-01| 100.0|         C1|
+|      2|      P002|2024-01-05| 150.0|         C2|
+|      3|      P001|2024-01-10| 100.0|         C1|
+|      4|      P003|2024-01-15| 200.0|         C3|
+|      5|      P002|2024-01-20| 150.0|         C2|
++-------+----------+----------+------+-----------+
+
++----------+------------+-----------+
+|product_id|product_name|category_id|
++----------+------------+-----------+
+|      P001|   Product A|         C1|
+|      P002|   Product B|         C2|
+|      P003|   Product C|         C3|
++----------+------------+-----------+
+
++-----------+---------------+
+|category_id|  category_name|
++-----------+---------------+
+|         C1|    Electronics|
+|         C2|       Clothing|
+|         C3|Home Appliances|
++-----------+---------------+
+
+---------------------------------------------------
+
+from pyspark.sql.functions import month, year, sum, avg
+
+# 1. Monthly Active Users (MAU) for January 2024
+mau_filter = (month(dfUserActivity["activity_date"]) == 1) & (year(dfUserActivity["activity_date"]) == 2024)
+mau_count = dfUserActivity.filter(mau_filter).select("user_id").distinct().count()
+
+# 2. Total Sales Revenue for January 2024
+sales_filter = (month(dfSales["sale_date"]) == 1) & (year(dfSales["sale_date"]) == 2024)
+total_sales_revenue = dfSales.filter(sales_filter).select(sum("amount")).first()[0]
+
+# 3. Average Sale Amount Per Category for January 2024
+sales_with_category = dfSales.join(dfProducts, "product_id").join(dfCategories, "category_id")
+average_sales_per_category = sales_with_category.filter(sales_filter).groupBy("category_name").agg(avg("amount").alias("average_sale_amount"))
+
+# Output the results
+print(f"Monthly Active Users (MAU) for January 2024: {mau_count}")
+print(f"Total Sales Revenue for January 2024: ${total_sales_revenue:.2f}")
+
+print("Average Sale Amount Per Category for January 2024:")
+average_sales_per_category.show()
+
+#OUTPUT
+-----------------------------------------------------
+Monthly Active Users (MAU) for January 2024: 5
+Total Sales Revenue for January 2024: $700.00
+Average Sale Amount Per Category for January 2024:
++---------------+-------------------+
+|  category_name|average_sale_amount|
++---------------+-------------------+
+|    Electronics|              100.0|
+|       Clothing|              150.0|
+|Home Appliances|              200.0|
++---------------+-------------------+
+-----------------------------------------------------
+from pyspark.sql.functions import desc
+
+# 4. Number of New Users in January 2024
+new_users_filter = (month(dfUsers["join_date"]) == 1) & (year(dfUsers["join_date"]) == 2024)
+new_users_count = dfUsers.filter(new_users_filter).count()
+
+# 5. Top Selling Product Category in January 2024
+# Reusing sales_with_category from previous steps
+category_sales = sales_with_category.filter(sales_filter).groupBy("category_name").agg(sum("amount").alias("total_sales"))
+top_selling_category = category_sales.orderBy(desc("total_sales")).first()
+
+# Output the results
+print(f"Number of New Users in January 2024: {new_users_count}")
+print(f"Top Selling Product Category in January 2024: {top_selling_category['category_name']} with sales of ${top_selling_category['total_sales']:.2f}")
+
+#OUTPUT
+---------------------------------------------------
+Number of New Users in January 2024: 0
+Top Selling Product Category in January 2024: Clothing with sales of $300.00
+---------------------------------------------------
